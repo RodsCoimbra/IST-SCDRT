@@ -1,4 +1,5 @@
 #include "pid.h"
+#include "command.h"
 
 const int LED_PIN = 15;
 const int DAC_RANGE = 4096;
@@ -8,6 +9,7 @@ const float adc_conv = 4095/vcc;
 const float offset_R_Lux = log10(225000)+0.8;
 pid my_pid {0.01, 1, 0, 0.05 };
 float r {0.0};
+int DutyC;
 
 
 void setup() {// the setup function runs once
@@ -23,6 +25,7 @@ int read_adc;
 float Lux;
 if(Serial.available()){
   r = Serial.parseInt()
+  Serial.flush()
   
 }
 
