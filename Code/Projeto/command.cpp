@@ -4,7 +4,6 @@
 using namespace std;
 
 
-string read_command(string command){
-  cout << "hello";
-  return "hi";
+char* read_command(char* command){
+  return command;
 }
