@@ -5,5 +5,6 @@ using namespace std;
 
 
 string read_command(string command){
-
+  cout << "hello";
+  return "hi";
 }

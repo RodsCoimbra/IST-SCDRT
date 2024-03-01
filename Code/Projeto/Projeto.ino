@@ -22,27 +22,28 @@ analogWriteRange(DAC_RANGE); //100% duty cycle
 
 void loop() {// the loop function runs cyclically
 int read_adc;
+float v_adc;
 float Lux;
-if(Serial.available()){
-  r = Serial.parseInt()
-  Serial.flush()
-  
-}
+//if(Serial.available()){
+//  r = Serial.parseInt();
+//  Serial.flush();
+//  
+//}
 
 read_adc = analogRead(A0); // read analog voltage
 v_adc = calculate_Volt(read_adc);
-Lux = calculate_Lux(read_adc);
+Lux = calculate_Lux(read_adc);  //Alterar para v_adc se continuar a usar
 
 //Pid
 int pwm = (int) my_pid.compute_control(r, v_adc);
-analogWrite(LED_PIN, pwm);
+analogWrite(LED_PIN, 100);
 my_pid.housekeep(r, v_adc);
 
 
 //format that Serial Plotter likes
 Serial.print(0); Serial.print(" ");
 Serial.print(Lux); Serial.print(" ");
-Serial.printf("%d\n", pwm); Serial.print(" ");
+//Serial.printf("%d\n", pwm); Serial.print(" ");
 Serial.print(1000); 
 Serial.println();
 
