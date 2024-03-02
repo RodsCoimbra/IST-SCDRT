@@ -7,8 +7,8 @@ int counter = 0;
 const float vcc = 3.3;
 const float adc_conv = 4095/vcc;
 const float offset_R_Lux = log10(225000)+0.8;
-//pid my_pid {10, 8, 1, 8};
-pid my_pid {0.01, 1, 0, 0.05};
+pid my_pid {3, 0.8, 0.3, 3};
+//pid my_pid {0.01, 1, 0, 0.05};
 float r {40.0};
 float reference = r;
 int DutyC;
@@ -42,11 +42,8 @@ char command;
 int lumminaire;
 //Pid
 float pwm = (float) my_pid.compute_control(r, v_adc);
-Serial.println(pwm);
-my_pid.housekeep(r, v_adc, pwm);
-if (pwm > 0.9){pwm = 3.3;}
-else if(pwm < 0){pwm = 0;}
 int value = calculate_Lux_volt(pwm);
+my_pid.housekeep(r, v_adc);
 analogWrite(LED_PIN, value);
 
 //format that Serial Plotter likes

@@ -14,7 +14,9 @@ float P = K*(b*r-y);
 float ad = Td/(Td+N*h);
 float bd = Td*K*N/(Td+N*h);
 D = ad*D-bd*(y-y_old);
-float u = P+I+0;
-//cout << "P: " << P << " I: " << I << " D: " << D << " u: " << u << endl;
+float u = P+I+D;
+if( u < 0 ) u = 0;
+if( u > 3.3 ) u = 3.3;
+cout << "P: " << P << " I: " << I << " D: " << D << " u: " << u << endl;
 return u;
 }
