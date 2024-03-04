@@ -1,4 +1,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
-char* read_command(char* command);
+#include "Arduino.h"
+
+void read_command();
 #endif //COMMAND_Hs
