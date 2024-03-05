@@ -1,20 +1,41 @@
-i = 0:200:4000;
+clear
+close all
+value = load("Teste2.csv");
+len = length(value(:,1));
+m = -0.9:0.01:-0.7;
+G = zeros(len/15, 14);
+for j = 1:(len/15)
+    figure();
+    hold on
+    k = j -1;
+    for i = 1:(15-1)
+        G(j, i) = (value(k * 15 + i+1,2) - value(k * 15 + i,2))/(value(k * 15 + i+1,1) - value(k * 15 + i,1));
+    end
+        k = (j-1) * 15;
+        plot(value((k+1):(k+15),1), value((k+1):(k+15),2))
+        title(["Ganho para m =" num2str(m(j))])
+        xlabel("Duty-cycle")
+        ylabel("Lux")
+end
 
 
+%% Descobrir o erro
+close all
+G_avg = mean(G, 2);
+for i = 1:21
+    G(i,:) = G(i,:)/G_avg(i);
+end
+Erro = zeros(len/15, 1);
+for j = 1:(len/15)
+    for i = 1:(15-1)
+    Erro(j) = Erro(j) + (1 - G(j,i))^2;
+    end
+end
+
+[er,i] = min(Erro);
+sprintf("%f, %f", er, m(i))
 
 
-Intensity -> 0, avg_lux -> 0.199320 
-Intensity -> 200, avg_lux -> 0.634718 
-Intensity -> 400, avg_lux -> 2.115396 
-Intensity -> 600, avg_lux -> 4.932630 
-Intensity -> 800, avg_lux -> 8.635897 
-Intensity -> 1000, avg_lux -> 12.747378 
-Intensity -> 1200, avg_lux -> 16.959587 
-Intensity -> 1400, avg_lux -> 21.792700 
-Intensity -> 1600, avg_lux -> 25.898376 
-Intensity -> 1800, avg_lux -> 30.600126 
-Intensity -> 2000, avg_lux -> 35.161030 
-Intensity -> 2200, avg_lux -> 40.001270 
-Intensity -> 2400, avg_lux -> 43.662552 
-Intensity -> 2600, avg_lux -> 48.549244 
+%% Teste final
 
+(value(30,2)-value(16,2))/(value(30,1)-value(16,1));
