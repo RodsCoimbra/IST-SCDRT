@@ -1,6 +1,6 @@
 clear
 close all
-value = load("Teste2.csv");
+value = load("Teste.csv");
 len = length(value(:,1));
 m = -0.9:0.01:-0.7;
 G = zeros(len/15, 14);
