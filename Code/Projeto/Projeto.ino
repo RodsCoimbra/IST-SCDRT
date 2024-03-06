@@ -10,11 +10,11 @@ const float m = -0.89;
 const float offset_R_Lux = log10(225000)-m;
 float G_inv;
 float K = 1.5;
-pid my_pid {5, K, K, K, 1, 4.5};
+//pid my_pid {5, K, K, K, 1, 4.5};
 //(h+, K+, Ki, Kd, b ,Ti,
-// pid my_pid {5, 8, 3, 0, 0.3, 5};
+ pid my_pid {5, 8, 3, 0, 0.3, 5};
 
-float r {40.0};
+float r {0.0};
 float reference = r;
 float DutyCycle = 0;
 bool occupied = false;
@@ -61,13 +61,13 @@ DutyCycle = value_adc/dutyCycle_conv;
 
 
 //format that Serial Plotter likes
-Lux = calculate_Lux(read_adc);
-Serial.print(value_adc); Serial.print(" ");
-Serial.print(Lux); Serial.print(" ");
-Serial.print(reference); Serial.print(" ");
-Serial.print(0); Serial.print(" ");
-Serial.print(80); Serial.print(" ");
-Serial.println();  
+//Lux = calculate_Lux(read_adc);
+//Serial.print(value_adc); Serial.print(" ");
+//Serial.print(Lux); Serial.print(" ");
+//Serial.print(reference); Serial.print(" ");
+//Serial.print(0); Serial.print(" ");
+//Serial.print(80); Serial.print(" ");
+//Serial.println();  
 //Commands
 read_command();
 delay(50);

@@ -13,7 +13,7 @@ Tau = Req * C;
 plot(Tau)
 
 %% Simular Tau
-lumen = 100;
+lumen = 1;
 vf = calc_vf(lumen);
 vi = 0;
 t = 0:0.001:1;

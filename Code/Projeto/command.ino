@@ -85,6 +85,7 @@ void read_command(){
       }
         break;
       case 's':
+        
         break;
       case 'S':
         break;
@@ -128,6 +129,10 @@ void read_command(){
           case 'p':
             break;
           case 't':
+            {
+              unsigned long final_time = millis();
+              Serial.printf("t %d %ld\n", lumminaire, final_time/1000);
+            }
             break;
           case 'b':
             break;
