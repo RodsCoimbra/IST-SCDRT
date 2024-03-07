@@ -17,7 +17,9 @@ float K = 1.5;
 float r {0.0};
 float reference = r;
 float DutyCycle = 0;
-bool occupied = false;
+bool occupied = false, lux_flag = false, duty_flag = false;
+int read_adc;
+short desk=1;
 
 
 void setup() { // the setup function runs once
@@ -33,17 +35,17 @@ Serial.printf("The static gain of the system is %f\n", 1.0/G_inv);
 
 
 void loop() {// the loop function runs cyclically
-int read_adc, j;
+int j;
 float v_adc, Lux, total_adc, pwm;
 int value_adc;
 
 //Média de 50 medições, para reduzir noise
-for(j = 0, total_adc = 0; j < 50; j +=1){
+unsigned long start_time, end_time;
+for(j = 0, total_adc = 0; j < 20; j +=1){
 read_adc = analogRead(A0); 
 total_adc += read_adc;
-delay(1);
 }
-read_adc = total_adc/50.0;
+read_adc = total_adc/20.0;
 
 //Feedforward
 value_adc = (reference*G_inv)*4095;
@@ -70,7 +72,8 @@ DutyCycle = value_adc/dutyCycle_conv;
 //Serial.println();  
 //Commands
 read_command();
-delay(50);
+real_time_stream_of_data();
+delay(5);
 }
 
 float calculate_Volt(int read_adc){

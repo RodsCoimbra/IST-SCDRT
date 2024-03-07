@@ -85,9 +85,48 @@ void read_command(){
       }
         break;
       case 's':
-        
+        {
+          char flag = Serial.read();
+          Serial.read();
+          lumminaire = Serial.parseInt();
+          if (Serial.read() != '\n') 
+          {
+            Serial.println("err");
+            return;
+          }
+          switch (flag) {
+          case 'l':
+            lux_flag = true;
+            break;
+          case 'd':
+            duty_flag = true;
+            break;
+          default:
+            Serial.println("err");
+          }
+        }
         break;
       case 'S':
+        {
+          char flag = Serial.read();
+          Serial.read();
+          lumminaire = Serial.parseInt();
+          if (Serial.read() != '\n') 
+          {
+            Serial.println("err");
+            return;
+          }
+          switch (flag) {
+          case 'l':
+            lux_flag = false;
+            break;
+          case 'd':
+            duty_flag = false;
+            break;
+          default:
+            Serial.println("err");
+          }
+        }
         break;
       case 'g':
         command = Serial.read();
@@ -125,6 +164,11 @@ void read_command(){
             Serial.printf("k %d %d\n", lumminaire, my_pid.get_feedback());
             break;
           case 'x':
+            {
+            float Lux = calculate_Lux(read_adc);
+            Lux = max(0,Lux - (DutyCycle/(100*G_inv)));
+            Serial.printf("x %d %f\n", lumminaire, Lux);
+            }
             break;
           case 'p':
             break;
@@ -152,4 +196,16 @@ void read_command(){
     }
     return;
 }
+}
+
+void real_time_stream_of_data(){
+  unsigned long time = millis();
+  if(lux_flag){
+    float lux = calculate_Lux(read_adc);
+    Serial.printf("s l %d %f %ld \n", desk,lux,time);
+  }
+  if(duty_flag){
+    Serial.printf("s d %d %f %ld \n", desk, DutyCycle,time);
+  }
+
 }
