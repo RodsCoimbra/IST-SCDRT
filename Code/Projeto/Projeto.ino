@@ -10,6 +10,7 @@ const float m = -0.89;
 const float offset_R_Lux = log10(225000)-m;
 float G_inv;
 float K = 1.5;
+float Pmax = 0.0158;
 //pid my_pid {5, K, K, K, 1, 4.5};
 //(h+, K+, Ki, Kd, b ,Ti,
  pid my_pid {5, 8, 3, 0, 0.3, 5};
@@ -17,10 +18,13 @@ float K = 1.5;
 float r {0.0};
 float reference = r;
 float DutyCycle = 0;
-bool occupied = false, lux_flag = false, duty_flag = false;
+bool occupied = false, lux_flag = false, duty_flag = false, ignore_reference = false;
 int read_adc;
 short desk=1;
+struct repeating_timer timer;
+volatile bool timer_fired {false};
 
+// last minute buffer
 
 void setup() { // the setup function runs once
 Serial.begin(115200);
@@ -31,16 +35,19 @@ r = calculate_volt_lux(r);
 //Gain measurement at the beginning of the program
 G_inv = 1.0/Gain();
 Serial.printf("The static gain of the system is %f\n", 1.0/G_inv);
+add_repeating_timer_ms( -5, my_repeating_timer_callback, NULL, &timer);
 }
-
 
 void loop() {// the loop function runs cyclically
 int j;
 float v_adc, Lux, total_adc, pwm;
 int value_adc;
-
 //Média de 50 medições, para reduzir noise
-unsigned long start_time, end_time;
+unsigned long time;
+if(timer_fired)
+{
+time = micros();
+timer_fired = false;
 for(j = 0, total_adc = 0; j < 20; j +=1){
 read_adc = analogRead(A0); 
 total_adc += read_adc;
@@ -48,19 +55,19 @@ total_adc += read_adc;
 read_adc = total_adc/20.0;
 
 //Feedforward
-value_adc = (reference*G_inv)*4095;
+if(!ignore_reference){
+value_adc = (r*G_inv)*vcc;
 
 //Pid
 if(my_pid.get_feedback()){
 v_adc = calculate_Volt(read_adc); //Volt na entrada
-pwm = my_pid.compute_control(r, v_adc); //Volt
-value_adc += calculate_adc_volt(pwm);
+value_adc += my_pid.compute_control(r, v_adc, value_adc); //Volt
 my_pid.housekeep(r, v_adc);
 }
-value_adc = constrain(value_adc, 0, 4095);
+value_adc = constrain(calculate_adc_volt(value_adc), 0, 4095);
 analogWrite(LED_PIN, value_adc);
 DutyCycle = value_adc/dutyCycle_conv;
-
+}
 
 //format that Serial Plotter likes
 //Lux = calculate_Lux(read_adc);
@@ -72,8 +79,8 @@ DutyCycle = value_adc/dutyCycle_conv;
 //Serial.println();  
 //Commands
 read_command();
-real_time_stream_of_data();
-delay(5);
+real_time_stream_of_data(time/1000);
+}
 }
 
 float calculate_Volt(int read_adc){
@@ -98,13 +105,22 @@ int calculate_adc_volt(float input_volt){
 }
 
 float Gain(){
-analogWrite(LED_PIN, 0);
+analogWrite(LED_PIN, 819); //0.2 de duty cycle
 delay(2500);
-float y1 = calculate_Lux(analogRead(A0)); 
+float y1 = calculate_Volt(analogRead(A0)); 
 analogWrite(LED_PIN, 4095);
 delay(2500);
-float y2 = calculate_Lux(analogRead(A0)); 
+float y2 = calculate_Volt(analogRead(A0)); 
 analogWrite(LED_PIN, 0);
 delay(2500);
-return y2-y1;
+return (y2-y1)/(1-0.2);
+}
+
+
+bool my_repeating_timer_callback (struct repeating_timer *t)
+{
+if(! timer_fired){
+timer_fired = true;
+}
+return true;
 }

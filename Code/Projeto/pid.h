@@ -6,7 +6,7 @@ bool saturated, anti_windup, feedback;
 public:
 explicit pid( float _h, float _K = 1, float _Ki = 1, float _Kd = 1, float b_ = 1, float Ti_ = 1, float Td_ = 0, float N_ = 10);
 ~pid() {};
-float compute_control( float r, float y);
+float compute_control( float r, float y, float u_ff);
 void set_antiwindup(bool set);
 bool get_antiwindup();
 void set_feedback(bool set);

@@ -12,8 +12,8 @@ Req = (R2*R1)./(R2+R1);
 Tau = Req * C;
 plot(Tau)
 
-%% Simular Tau
-lumen = 1;
+%% Simular resposta
+lumen = 100;
 vf = calc_vf(lumen);
 vi = 0;
 t = 0:0.001:1;
@@ -38,8 +38,3 @@ function Tau= calc_tau(x)
     Req = (R2_value*R1)/(R2_value+R1);
     Tau = Req * C;
 end
-
-
-% value = load("tau.csv");
-% value(:,1) = value(:,1) * 10^-6 - 5;
-% plot(value(:,1), value(:,2))

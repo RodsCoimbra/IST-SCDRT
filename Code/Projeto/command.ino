@@ -21,6 +21,7 @@ void read_command(){
           reference = temp_reference;
           r = calculate_volt_lux(reference);
           Serial.println("ack");
+          ignore_reference = false;
         }
         break;
       case 'd':
@@ -34,9 +35,10 @@ void read_command(){
             Serial.println("err");
             break;
           }
+          DutyCycle = DutyC;
           analogWrite(LED_PIN, DutyC*dutyCycle_conv);
           Serial.println("ack");
-          delay(2000);
+          ignore_reference = true;
         }
         break;
       case 'o':
@@ -171,6 +173,10 @@ void read_command(){
             }
             break;
           case 'p':
+            {
+            float power = Pmax * DutyCycle/100.0;
+            Serial.printf("p %d %f\n", lumminaire, power);
+            }
             break;
           case 't':
             {
@@ -198,8 +204,7 @@ void read_command(){
 }
 }
 
-void real_time_stream_of_data(){
-  unsigned long time = millis();
+void real_time_stream_of_data(unsigned long time){
   if(lux_flag){
     float lux = calculate_Lux(read_adc);
     Serial.printf("s l %d %f %ld \n", desk,lux,time);
