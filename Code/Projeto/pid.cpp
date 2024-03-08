@@ -1,40 +1,68 @@
 #include "pid.h"
 #include <iostream>
 
-pid::pid( float _h, float _K, float _Ki, float _Kd, float b_,
-float Ti_, float Td_, float N_)
-// member variable initialization list
-: h {_h}, K{_K}, Ki {_Ki}, Kd {_Kd}, b {b_}, Ti {Ti_}, Td {Td_},
-N {N_}, I {0.0}, D {0.0}, y_old{0.0}, saturated{false}, anti_windup{true}, feedback{true}
-{ } 
-float pid::compute_control( float r, float y ) {
-float P = K*(b*r-y);
-float ad = Td/(Td+N*h);
-float bd = Td*Kd*N/(Td+N*h);
-D = ad*D-bd*(y-y_old);
-u = P+I+D;
-if( u < -0.1) { saturated = true; }
-if( u > 3.4){ saturated = true; }
-return u;
+using namespace std;
+
+pid::pid(float _h, float _K, float b_,
+         float Ti_, float Tt_, float Td_, float N_)
+  // member variable initialization list
+  : h{ _h }, K{ _K }, b{ b_ }, Ti{ Ti_ }, Td{ Td_ }, Tt{ Tt_ },
+    N{ N_ }, I{ 0.0 }, D{ 0.0 }, y_old{ 0.0 }, b_old{ b_ }, K_old{ _K }, anti_windup{ true }, feedback{ true } {}
+
+int pid::compute_control(float r, float y) {
+  float e = r - y;
+  I = I + K_old * (b_old * e) - K * (b * e);  //Bumpless
+  b_old = b;
+  K_old = K;
+  P = K * (b * e);
+  float ad = Td / (Td + N * h);
+  float bd = Td * K * N / (Td + N * h);
+  D = ad * D - bd * (y - y_old);
+  u_fb = P + I + D;
+  v = u_ff + u_fb;
+  if (v > 4095) {
+    u = 4095;
+  } else if (v < 0) {
+    u = 0;
+  } else {
+    u = v;
+  }
+  return u;
 }
 
-
-void pid::set_antiwindup(bool set){
-  anti_windup = set;return;
+float pid::get_u() {
+  v = u_ff + u_fb;
+  if (v > 4095) {
+    u = 4095;
+  } else if (v < 0) {
+    u = 0;
+  } else {
+    u = v;
+  }
+  return v;
+}
+void pid::compute_feedforward(float r) {
+  u_fb = 0;
+  u_ff = (r * b * K);
 }
 
-bool pid::get_antiwindup(){
+void pid::set_antiwindup(bool set) {
+  anti_windup = set;
+  return;
+}
+
+bool pid::get_antiwindup() {
   return anti_windup;
 }
 
-void pid::set_feedback(bool set){
-  if (feedback==true && set == false){
+void pid::set_feedback(bool set) {
+  if (feedback == true && set == false) {  //Quando se desativa o feedback, meter o integral a 0
     I = 0.0;
   }
   feedback = set;
   return;
 }
 
-bool pid::get_feedback(){
+bool pid::get_feedback() {
   return feedback;
 }

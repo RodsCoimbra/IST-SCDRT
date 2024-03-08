@@ -3,5 +3,5 @@
 #include "Arduino.h"
 
 void read_command();
-void real_time_stream_of_data(); 
-#endif //COMMAND_Hs
+void real_time_stream_of_data(unsigned long time);
+#endif  //COMMAND_Hs
