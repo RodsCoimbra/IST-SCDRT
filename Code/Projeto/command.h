@@ -4,4 +4,4 @@
 
 void read_command();
 void real_time_stream_of_data(unsigned long time);
-#endif  //COMMAND_Hs
+#endif // COMMAND_Hs

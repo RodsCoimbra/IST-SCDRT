@@ -38,3 +38,5 @@ function Tau= calc_tau(x)
     Req = (R2_value*R1)/(R2_value+R1);
     Tau = Req * C;
 end
+
+
