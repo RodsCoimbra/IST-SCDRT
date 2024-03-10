@@ -1,7 +1,6 @@
 #ifndef LUMMINAIRE_H
 #define LUMMINAIRE_H
-// #define buffer_size 6000
-#define buffer_size 50
+#define buffer_size 6000
 class lumminaire
 {
   float m, offset_R_Lux, Pmax, DutyCycle, G;

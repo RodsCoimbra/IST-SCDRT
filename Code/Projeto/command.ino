@@ -132,8 +132,10 @@ void read_command() {
       case 'g':
         command = Serial.read();
         Serial.read();
-        lumminaire = Serial.parseInt();
-        Serial.read();
+        if (command != 'b') {
+          lumminaire = Serial.parseInt();
+          Serial.read();
+        }
         switch (command) {
           case 'd':
             Serial.printf("d %d %f\n", lumminaire, my_desk.getDutyCycle());
@@ -184,58 +186,53 @@ void read_command() {
             break;
           case 'b':
             {
-              Serial.printf("Entrei1\n");
               char flag = Serial.read();
               unsigned short head = my_desk.getIdxBuffer();
               unsigned short i;
               Serial.read();
               lumminaire = Serial.parseInt();
-              Serial.printf("Entrei2\n");
               if (Serial.read() != '\n') {
-                Serial.printf("Entrei3\n");
                 Serial.println("err");
                 return;
               }
-
-              Serial.printf("Entrei4\n");
               switch (flag) {
                 case 'l':
-                  Serial.printf("b l ");
+                  Serial.printf("b l %d ", lumminaire);
                   // Se o buffer estiver cheio começar a partir dos valores mais antigos para os mais recentes
                   if (my_desk.isBufferFull()) {
                     for (i = head; i < buffer_size; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                   }
                   // Se o buffer não estiver cheio ir até onde há dados
                   else {
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                   }
-                  Serial.printf("%d %f\n", lumminaire, my_desk.getLastMinuteBufferL(head - 1));
+                  Serial.printf("%f\n", my_desk.getLastMinuteBufferL(head - 1));
                   break;
                 case 'd':
-                  Serial.printf("b d ");
+                  Serial.printf("b d %d ", lumminaire);
                   // Se o buffer estiver cheio começar a partir dos valores mais antigos para os mais recentes
                   if (my_desk.isBufferFull()) {
                     for (i = head; i < buffer_size; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferD(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));
                     }
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferD(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));
                     }
                   }
                   // Se o buffer não estiver cheio ir até onde há dados
                   else {
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%d %f,", lumminaire, my_desk.getLastMinuteBufferD(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));
                     }
                   }
-                  Serial.printf("%d %f\n", lumminaire, my_desk.getLastMinuteBufferD(head - 1));
+                  Serial.printf("%f\n", my_desk.getLastMinuteBufferD(head - 1));
                   break;
                 default:
                   Serial.println("err");

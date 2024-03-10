@@ -71,8 +71,7 @@ void loop()
       my_desk.setDutyCycle(u / dutyCycle_conv);
     }
     float lux = adc_to_lux(read_adc);
-    // my_desk.store_buffer(lux);
-    my_desk.store_buffer(time/1000000.0);
+    my_desk.store_buffer(lux);
     read_command();
     real_time_stream_of_data(time / 1000, lux);
   }
