@@ -1,24 +1,23 @@
 #include "pid.h"
 #include "command.h"
-#define buffer_size 6000
+#include "lumminaire.h"
+
 const int LED_PIN = 15;
 const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-const float m = -0.89;
-const float offset_R_Lux = log10(225000) - m;
-const float Pmax = 0.0158;
 pid my_pid{0.01, 5000, 0.75, 0.434, 0.1};
 //(h+, K, b ,Ti, TT
 // pid my_pid {5, 8, 3, 0, 0.3, 5};
+
+lumminaire my_desk{-0.89, log10(225000) - (-0.89), 0.0158, 1};
+// system my_desk{float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number}
+
 float r{0.0};
 float reference = r;
-float DutyCycle = 0, G, read_adc;
-bool occupied = false, lux_flag = false, duty_flag = false, ignore_reference = false, buffer_full = false;
-bool debbuging = true;
-short desk = 1;
-float last_minute_buffer_l[buffer_size], last_minute_buffer_d[buffer_size];
+float read_adc;
+bool debbuging = false;
 struct repeating_timer timer;
 volatile bool timer_fired{false};
 
@@ -30,8 +29,8 @@ void setup()
   analogWriteRange(DAC_RANGE); // 100% duty cycle
   r = lux_to_volt(r);
   // Gain measurement at the beginning of the program
-  G = Gain();
-  Serial.printf("The static gain of the system is %f\n", G);
+  my_desk.setGain(Gain());
+  Serial.printf("The static gain of the system is %f\n", my_desk.getGain());
   // my_pid.set_b((1/(my_pid.get_k()*G)));
   Serial.printf("%f %f\n", my_pid.get_k(), my_pid.get_b());
   add_repeating_timer_ms(-10, my_repeating_timer_callback, NULL, &timer);
@@ -54,7 +53,7 @@ void loop()
     }
     read_adc = total_adc / 20.0;
 
-    if (!ignore_reference)
+    if (!my_desk.isIgnoreReference())
     {
       // Feedforward
       my_pid.compute_feedforward(r);
@@ -69,11 +68,13 @@ void loop()
         u = my_pid.get_u();
       }
       analogWrite(LED_PIN, u);
-      DutyCycle = u / dutyCycle_conv;
+      my_desk.setDutyCycle(u / dutyCycle_conv);
     }
-    store_buffer(time/ 1000000);
+    float lux = adc_to_lux(read_adc);
+    // my_desk.store_buffer(lux);
+    my_desk.store_buffer(time/1000000.0);
     read_command();
-    real_time_stream_of_data(time / 1000);
+    real_time_stream_of_data(time / 1000, lux);
   }
 }
 
@@ -91,17 +92,22 @@ int volt_to_adc(float input_volt)
 float adc_to_lux(int read_adc)
 {
   float LDR_volt;
-  float LDR_resistance;
   LDR_volt = read_adc / adc_conv;
-  LDR_resistance = (VCC * 10000.0) / LDR_volt - 10000.0;
-  return pow(10, (log10(LDR_resistance) - offset_R_Lux) / (m));
+  return volt_to_lux(LDR_volt);
 }
 
 float lux_to_volt(float lux)
 {
-  float resistance = pow(10, (m * log10(lux) + offset_R_Lux));
+  float resistance = pow(10, (my_desk.getM() * log10(lux) + my_desk.getOffset_R_Lux()));
   return (VCC * 10000.0) / (resistance + 10000.0);
 }
+
+float volt_to_lux(float volt)
+{
+  float LDR_resistance = (VCC * 10000.0) / volt - 10000.0;
+  return pow(10, (log10(LDR_resistance) - my_desk.getOffset_R_Lux()) / (my_desk.getM()));
+}
+
 
 float Gain() // Calcula o ganho da caixa em cada run
 {
@@ -123,21 +129,4 @@ bool my_repeating_timer_callback(struct repeating_timer *t)
     timer_fired = true;
   }
   return true;
-}
-
-void store_buffer(int time)
-{
-  static int i = 0;
-  last_minute_buffer_d[i] = time;
-  i++;
-  if (i == buffer_size)
-  {
-    i = 0;
-    buffer_full = true;
-    for (int j = 0; j < buffer_size; j++)
-    {
-      Serial.printf("%f,", last_minute_buffer_d[j]);
-    }
-    Serial.println();
-  }
 }

@@ -1,11 +1,9 @@
 #include "pid.h"
-#include <iostream>
 
 using namespace std;
 
 pid::pid(float _h, float _K, float b_,
          float Ti_, float Tt_, float Td_, float N_)
-    // member variable initialization list
     : h{_h}, K{_K}, b{b_}, Ti{Ti_}, Td{Td_}, Tt{Tt_},
       N{N_}, I{0.0}, D{0.0}, y_old{0.0}, b_old{b_}, K_old{_K}, anti_windup{true}, feedback{true}
 {
