@@ -15,6 +15,7 @@ void read_command()
       float temp_reference;
       lumminaire = Serial.parseInt();
       Serial.read();
+      if(lumminaire != my_desk.getDeskNumber()) break;
       temp_reference = Serial.parseFloat();
       if (Serial.read() != '\n')
       {

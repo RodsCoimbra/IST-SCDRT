@@ -29,11 +29,7 @@ inline void pid::housekeep(float r, float y)
   float e = r - y;
   const float ao = h / Tt;
   float bi = K * h / Ti;
-  I += bi * (e);
-  if (anti_windup)
-  {
-    I += ao * (u - v);
-  }
+  I += bi * (e) + ao * (u - v);
   y_old = y;
 }
 #endif // PID_H

@@ -8,7 +8,7 @@ const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
 pid my_pid{0.01, 2000, 0.75, 0.35, 0.5};
-//(h, K, b ,Ti, TT
+//pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
 // pid my_pid {5, 8, 3, 0, 0.3, 5};
 
 lumminaire my_desk{ -0.89, log10(225000) - ( -0.89), 0.0158, 1 };
