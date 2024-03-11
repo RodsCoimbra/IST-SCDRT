@@ -107,3 +107,23 @@ float pid::get_h()
 {
   return h;
 }
+
+float pid::get_Ti()
+{
+  return Ti;
+}
+
+float pid::get_Tt()
+{
+  return Tt;
+}
+
+float pid::get_Td()
+{
+  return Td;
+}
+
+float pid::get_N()
+{
+  return N;
+}
