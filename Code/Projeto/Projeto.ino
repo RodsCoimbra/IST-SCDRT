@@ -14,8 +14,8 @@ pid my_pid{0.01, 2000, 0.75, 0.35, 0.5};
 lumminaire my_desk{ -0.89, log10(225000) - ( -0.89), 0.0158, 1 };
 // system my_desk{float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number}
 
-float r{ 0.0 };
-float reference = r;
+float ref{ 0.0 };
+float ref_volt;
 float read_adc;
 bool debbuging = false;
 struct repeating_timer timer;
@@ -26,7 +26,7 @@ void setup() {  // the setup function runs once
   analogReadResolution(12);     // default is 10
   analogWriteFreq(60000);       // 60KHz, about max
   analogWriteRange(DAC_RANGE);  // 100% duty cycle
-  r = lux_to_volt(r);
+  ref_volt = lux_to_volt(ref);
   // Gain measurement at the beginning of the program
   my_desk.setGain(Gain());
   Serial.printf("The static gain of the system is %f\n", my_desk.getGain());
@@ -51,19 +51,20 @@ void loop() {  // the loop function runs cyclically
 
     if (!my_desk.isIgnoreReference()) {
       // Feedforward
-      my_pid.compute_feedforward(r);
+      my_pid.compute_feedforward(ref_volt);
       if (my_pid.get_feedback()) {
         v_adc = adc_to_volt(read_adc);         // Volt na entrada
-        u = my_pid.compute_control(r, v_adc);  // Volt
-        my_pid.housekeep(r, v_adc);
+        u = my_pid.compute_control(ref_volt, v_adc);  // Volt
+        my_pid.housekeep(ref_volt, v_adc);
       } else {
         u = my_pid.get_u();
       }
       analogWrite(LED_PIN, u);
+      Serial.printf("%d, %f\n", u, u/dutyCycle_conv);
       my_desk.setDutyCycle(u / dutyCycle_conv);
     }
     float lux = adc_to_lux(read_adc);
-    my_desk.Compute_avg(my_pid.get_h(), lux, reference);
+    my_desk.Compute_avg(my_pid.get_h(), lux, ref);
     my_desk.store_buffer(lux);
     read_command();
     real_time_stream_of_data(time / 1000, lux);

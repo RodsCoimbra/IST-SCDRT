@@ -50,7 +50,7 @@ int pid::get_u()
       u = 0;
     }
   }
-  return v;
+  return u;
 }
 void pid::compute_feedforward(float r)
 {
