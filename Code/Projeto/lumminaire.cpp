@@ -27,7 +27,7 @@ void lumminaire::Compute_avg(float h, float lux, float reference)
   visibility = 0 > reference ? 0 : reference - lux;
 
   // flicker
-  float d_k_1, d_k_2, flicker;
+  float d_k_1, d_k_2, d_k, flicker;
   int idx = idx_buffer - 1;
   d_k = DutyCycle/100.0;
   if (idx == -1)
