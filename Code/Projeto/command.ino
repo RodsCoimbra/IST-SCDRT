@@ -14,16 +14,20 @@ void read_command()
     {
       float temp_reference;
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       Serial.read();
-      if(lumminaire != my_desk.getDeskNumber()) break;
       temp_reference = Serial.parseFloat();
       if (Serial.read() != '\n')
       {
         Serial.println("err");
         break;
       }
-      reference = temp_reference;
-      r = lux_to_volt(reference);
+      ref = temp_reference;
+      ref_volt = lux_to_volt(ref);
       Serial.println("ack");
       my_desk.setIgnoreReference(false);
     }
@@ -32,6 +36,11 @@ void read_command()
     {
       float DutyC;
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       Serial.read();
       DutyC = Serial.parseFloat();
       if (Serial.read() != '\n' || DutyC > 100 || DutyC < 0)
@@ -49,6 +58,11 @@ void read_command()
     {
       int temp_occupied;
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       Serial.read();
       temp_occupied = Serial.parseInt();
       if (Serial.read() != '\n' || (temp_occupied != 1 && temp_occupied != 0))
@@ -64,6 +78,11 @@ void read_command()
     {
       int temp_antiwindup;
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       Serial.read();
       temp_antiwindup = Serial.parseInt();
       if (Serial.read() != '\n' || (temp_antiwindup != 1 && temp_antiwindup != 0))
@@ -79,6 +98,11 @@ void read_command()
     {
       int temp_feedback;
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       Serial.read();
       temp_feedback = Serial.parseInt();
       if (Serial.read() != '\n' || (temp_feedback != 1 && temp_feedback != 0))
@@ -95,6 +119,11 @@ void read_command()
       char flag = Serial.read();
       Serial.read();
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       if (Serial.read() != '\n')
       {
         Serial.println("err");
@@ -118,6 +147,11 @@ void read_command()
       char flag = Serial.read();
       Serial.read();
       lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       if (Serial.read() != '\n')
       {
         Serial.println("err");
@@ -142,12 +176,55 @@ void read_command()
       break;
     }
 
+    case 'K':
+    {
+      float K;
+      lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
+      Serial.read();
+      K = Serial.parseFloat();
+      if (Serial.read() != '\n')
+      {
+        Serial.println("err");
+        break;
+      }
+      my_pid.set_k(K);
+    }
+    break;
+    case 'b':
+    {
+      float b;
+      lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
+      Serial.read();
+      b = Serial.parseFloat();
+      if (Serial.read() != '\n')
+      {
+        Serial.println("err");
+        break;
+      }
+      my_pid.set_b(b);
+    }
+    break;
     case 'g':
       command = Serial.read();
       Serial.read();
       if (command != 'b')
       {
         lumminaire = Serial.parseInt();
+        if (lumminaire != my_desk.getDeskNumber())
+        {
+          clean_buffer();
+          break;
+        }
         Serial.read();
       }
       switch (command)
@@ -170,7 +247,7 @@ void read_command()
       }
       break;
       case 'r':
-        Serial.printf("r %d %f\n", lumminaire, reference);
+        Serial.printf("r %d %f\n", lumminaire, ref);
         break;
       case 'o':
         Serial.printf("o %d %d\n", lumminaire, my_desk.isOccupied());
@@ -207,6 +284,11 @@ void read_command()
         unsigned short i;
         Serial.read();
         lumminaire = Serial.parseInt();
+        if (lumminaire != my_desk.getDeskNumber())
+        {
+          clean_buffer();
+          break;
+        }
         if (Serial.read() != '\n')
         {
           Serial.println("err");
@@ -276,6 +358,11 @@ void read_command()
       case 'f':
         Serial.printf("f %d %f\n", lumminaire, my_desk.getFlickerErr());
         break;
+      case 'i':
+        Serial.printf("i %d - h = %f, K = %f, b = %f, Ti = %f, Tt = %f, Td = %f, N = %f\n", lumminaire, 
+        my_pid.get_h(), my_pid.get_k(), my_pid.get_b(), my_pid.get_Ti(), my_pid.get_Tt(), my_pid.get_Td(), my_pid.get_N());
+        break;
+        
       default:
         Serial.println("err");
       }
@@ -285,6 +372,14 @@ void read_command()
       Serial.println("err");
     }
     return;
+  }
+}
+
+void clean_buffer()
+{
+  while (Serial.available() > 0)
+  {
+    Serial.read();
   }
 }
 
@@ -301,6 +396,6 @@ void real_time_stream_of_data(unsigned long time, float lux)
   }
   if (debbuging)
   {
-    Serial.printf("0 80 %f %f %f\n", lux, reference, my_desk.getDutyCycle());
+    Serial.printf("0 80 %f %f %f\n", lux, ref, my_desk.getDutyCycle());
   }
 }
