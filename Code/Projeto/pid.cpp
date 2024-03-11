@@ -11,11 +11,10 @@ pid::pid(float _h, float _K, float b_,
 
 int pid::compute_control(float r, float y)
 {
-  float e = r - y;
-  I = I + K_old * (b_old * e) - K * (b * e); // Bumpless
+  I = I + K_old * (b_old * r - y) - K * (b * r - y); // Bumpless
   b_old = b;
   K_old = K;
-  P = K * (b * e);
+  P = K * (-y);   
   float ad = Td / (Td + N * h);
   float bd = Td * K * N / (Td + N * h);
   D = ad * D - bd * (y - y_old);
@@ -102,4 +101,9 @@ float pid::get_k()
 float pid::get_b()
 {
   return b;
+}
+
+float pid::get_h()
+{
+  return h;
 }

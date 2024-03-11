@@ -1,17 +1,23 @@
 #ifndef LUMMINAIRE_H
 #define LUMMINAIRE_H
 #define buffer_size 6000
+#include <cmath>
+
+
 class lumminaire
 {
   float m, offset_R_Lux, Pmax, DutyCycle, G;
   float last_minute_buffer_d[buffer_size], last_minute_buffer_l[buffer_size];
   bool occupied, lux_flag, duty_flag, ignore_reference, buffer_full;
   unsigned short desk_number, idx_buffer;
-
+  double Energy_avg, visibility_err, flicker_err;
+  unsigned long counter_avg;
 public:
   explicit lumminaire(float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number);
   ~lumminaire(){};
   void store_buffer(float lux);
+  void Compute_avg(float h, float lux, float reference);
+
 
   // Setters
 
@@ -43,6 +49,16 @@ public:
   {
     G = value;
   }
+
+  void addAvgs(float energy,float visibility,float flicker) 
+  {
+    Energy_avg += energy;
+    visibility_err += visibility;
+    flicker_err += flicker;
+    counter_avg++; 
+  }
+ 
+
   // Getters
 
   bool isOccupied() const
@@ -112,6 +128,21 @@ public:
   float getDutyCycle() const
   {
     return DutyCycle;
+  }
+
+  float getEnergyAvg() const
+  {
+    return Energy_avg/counter_avg;
+  }
+
+  float getVisibilityErr() const
+  {
+    return visibility_err/counter_avg;
+  }
+
+  float getFlickerErr() const
+  {
+    return flicker_err/counter_avg;
   }
 };
 

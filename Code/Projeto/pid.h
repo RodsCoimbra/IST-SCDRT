@@ -1,7 +1,5 @@
 #ifndef PID_H
 #define PID_H
-#define Max_u 3.3
-#define Min_u 0
 
 class pid
 {
@@ -23,6 +21,7 @@ public:
   float get_b();
   void set_k(float k_);
   float get_k();
+  float get_h();
 };
 
 inline void pid::housekeep(float r, float y)
