@@ -4,8 +4,6 @@ const float vcc = 3.3;
 const float adc_conv = 4095 / vcc;
 const float m = 0.89;
 const float offset_R_Lux = log10(225000) - m;
-struct repeating_timer timer;
-volatile bool timer_fired{ false };
 int i = 0;
 
 void setup() {  // the setup function runs once
@@ -13,7 +11,6 @@ void setup() {  // the setup function runs once
   analogReadResolution(12);     //default is 10
   analogWriteFreq(60000);       //60KHz, about max
   analogWriteRange(DAC_RANGE);  //100% duty cycle
-  add_repeating_timer_us(-800, my_repeating_timer_callback, NULL, &timer);
   analogWrite(LED_PIN, 0);
 }
 
@@ -22,24 +19,27 @@ void loop() {  // the loop function runs cyclically
   int read_adc;
   float time, value;
   static bool turn_on = false;
-  if (timer_fired) {
-    if (i < 4000) {
-      value = calculate_Volt(analogRead(A0));
-      time = micros();
-      Serial.printf("%f %f", time, value);
-      Serial.println();
-      i++;
-      if (!turn_on) {
-        delay(10000);
-        analogWrite(LED_PIN, 1023);
-        turn_on = true;
+  if (i < 4000) {
+    value = calculate_Volt(analogRead(A0));
+    time = micros();
+    Serial.printf("%f %f\n", time, value);
+    i++;
+    if (!turn_on) {
+      delay(8000);
+      int j;
+      for (j = 0; j < 100; j++) {
         value = calculate_Volt(analogRead(A0));
         time = micros();
-        Serial.printf("%f %f", time, value);
-        Serial.println();
+        Serial.printf("%f %f\n", time, value);
       }
+      time = micros();
+      Serial.printf("%f %f\n", time, value);
+      analogWrite(LED_PIN, 2047);
+      turn_on = true;
+      value = calculate_Volt(analogRead(A0));
+      time = micros();
+      Serial.printf("%f %f\n", time, value);
     }
-    timer_fired = false;
   }
 }
 
@@ -49,12 +49,4 @@ float calculate_Volt(int read_adc) {
 
 float calculate_duty_cycle(int input) {
   return (input / 4095) * 100;
-}
-
-
-bool my_repeating_timer_callback(struct repeating_timer* t) {
-  if (!timer_fired) {
-    timer_fired = true;
-  }
-  return true;
 }

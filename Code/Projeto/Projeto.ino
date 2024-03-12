@@ -7,7 +7,7 @@ const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-pid my_pid{0.01, 2000, 0.75, 0.35, 0.5};
+pid my_pid{0.01, 2000, 3.3, 0.35, 0.5};
 //pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
 // pid my_pid {5, 8, 3, 0, 0.3, 5};
 
@@ -30,8 +30,8 @@ void setup() {  // the setup function runs once
   // Gain measurement at the beginning of the program
   my_desk.setGain(Gain());
   Serial.printf("The static gain of the system is %f\n", my_desk.getGain());
-  my_pid.set_b((1/(my_pid.get_k()* my_desk.getGain())));
-  Serial.printf("%f %f\n", my_pid.get_k(), my_pid.get_b());
+  // my_pid.set_b((1/(my_pid.get_k()* my_desk.getGain())));
+  // Serial.printf("%f %f\n", my_pid.get_k(), my_pid.get_b());
   add_repeating_timer_ms(-10, my_repeating_timer_callback, NULL, &timer);
 }
 
@@ -60,7 +60,6 @@ void loop() {  // the loop function runs cyclically
         u = my_pid.get_u();
       }
       analogWrite(LED_PIN, u);
-      Serial.printf("%d, %f\n", u, u/dutyCycle_conv);
       my_desk.setDutyCycle(u / dutyCycle_conv);
     }
     float lux = adc_to_lux(read_adc);

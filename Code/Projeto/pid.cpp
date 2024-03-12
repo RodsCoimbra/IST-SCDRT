@@ -25,11 +25,11 @@ int pid::compute_control(float r, float y)
   {
     if (u > 4095)
     {
-      u = 4095;
+      u = 4095.0;
     }
     else if (u < 0)
     {
-      u = 0;
+      u = 0.0;
     }
   }
   return u;
@@ -43,11 +43,11 @@ int pid::get_u()
   {
     if (u > 4095)
     {
-      u = 4095;
+      u = 4095.0;
     }
     else if (u < 0)
     {
-      u = 0;
+      u = 0.0;
     }
   }
   return u;
