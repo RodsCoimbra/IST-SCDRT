@@ -37,5 +37,32 @@ sprintf("%f, %f", er, m(i))
 
 
 %% Teste final
-
-(value(30,2)-value(16,2))/(value(30,1)-value(16,1));
+close all
+figure();
+color = get(gca,'ColorOrder');
+i = 0;
+hold on
+legend_entries = cell(1, 8);
+for j = 1:10:(len/15)
+    i = i+1;
+    k = (j-1) * 15;
+    plot(value((k+1):(k+15),1), value((k+1):(k+15),2), 'o', 'Color',color(i, :),'MarkerSize',5)
+    %title(["Ganho para m =" num2str(m(j))])
+    legend_entries{i*2-1} = sprintf('m= %f', m(j));
+    xlabel("Duty-cycle")
+    ylabel("Lux")
+    legend_entries{i*2} = sprintf(''); % Create legend string
+    b1 = value((k+5):(k+15),1)\ value((k+5):(k+15),2);
+    plot(value((k+1):(k+15),1), b1*value((k+1):(k+15),1), '--' ,'Color',color(i,:));
+end
+    i = i+1;
+    k = 1 * 15;
+    plot(value((k+1):(k+15),1), value((k+1):(k+15),2), 'x', 'Color',color(i, :),'MarkerSize',9)
+    %title(["Ganho para m =" num2str(m(j))])
+    legend_entries{i*2-1} = sprintf('m= %f', m(2));
+    xlabel("Duty-cycle")
+    ylabel("Lux")
+    legend_entries{i*2} = sprintf(''); % Create legend string
+    b1 = value((k+5):(k+15),1)\ value((k+5):(k+15),2);
+    plot(value((k+1):(k+15),1), b1*value((k+1):(k+15),1), '--' ,'Color',color(i,:));
+    legend(legend_entries);
