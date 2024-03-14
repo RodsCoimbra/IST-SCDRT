@@ -66,4 +66,4 @@ legend_entries = cell(1, 2);
     legend_entries{i*2} = sprintf(''); % Create legend string
     b1 = value((k+1):(k+15),1)\ value((k+1):(k+15),2);
     plot(value((k+1):(k+15),1), b1*value((k+1):(k+15),1), '-' ,'Color',color(1,:), 'Linewidth', 1.5);
-    legend(["Data when m = 0.89" "Linear regression for m = 0.89"]);
+    legend(["Data when m = -0.89" "Linear regression for m = -0.89"]);
