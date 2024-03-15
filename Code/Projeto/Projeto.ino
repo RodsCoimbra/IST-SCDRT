@@ -7,11 +7,11 @@ const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-pid my_pid{ 0.01, 2000, 5.25, 0.35, 0.5 };
+pid my_pid{ 0.01, 0.5, 1, 0.1, 0.05};
 // pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
 //  pid my_pid {5, 8, 3, 0, 0.3, 5};
 
-lumminaire my_desk{ -0.89, log10(225000) - (-0.89), 0.0158, 1};
+lumminaire my_desk{ -0.89, log10(225000) - (-0.89), 0.0158, 1 };
 // system my_desk{float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number}
 
 float ref{ 0.0 };
@@ -28,37 +28,24 @@ void setup() {  // the setup function runs once
   analogWriteRange(DAC_RANGE);  // 100% duty cycle
   ref_volt = lux_to_volt(ref);
   // Gain measurement at the beginning of the program
-  Gain_Volt_DC();
-  // Serial.printf("The static gain of the system is %f\n", my_desk.getGain());
-  // my_pid.set_b((1/(my_pid.get_k()* my_desk.getGain())));
-  // Serial.printf("%f %f\n", my_pid.get_k(), my_pid.get_b());
+  Gain();
   add_repeating_timer_ms(-10, my_repeating_timer_callback, NULL, &timer);
 }
 
 void loop() {  // the loop function runs cyclically
-  int j, u;
+  int u;
   float v_adc, total_adc;
   unsigned long time;
-  float comp;
   // Média de 20 medições, para reduzir noise
   if (timer_fired) {
     time = micros();
     timer_fired = false;
-    for (j = 0, total_adc = 0; j < 20; j += 1) {
-      read_adc = analogRead(A0);
-      total_adc += read_adc;
-    }
-    read_adc = total_adc / 20.0;
-
+    read_adc = digital_filter(20.0);
     if (!my_desk.isIgnoreReference()) {
       // Feedforward
       my_pid.compute_feedforward(ref_volt);
       if (my_pid.get_feedback()) {
-        v_adc = adc_to_volt(read_adc);                // Volt na entrada
-        comp = volt_to_lux(v_adc) - ref;
-        // if(comp < 0.2 && comp > 0){
-        //   v_adc = ref_volt;
-        // }
+        v_adc = adc_to_volt(read_adc);  // Volt na entrada
         u = my_pid.compute_control(ref_volt, v_adc);  // Volt
         my_pid.housekeep(ref_volt, v_adc);
       } else {
@@ -100,25 +87,34 @@ float volt_to_lux(float volt) {
   return pow(10, (log10(LDR_resistance) - my_desk.getOffset_R_Lux()) / (my_desk.getM()));
 }
 
-float Gain_Volt_DC()  // Calcula o ganho da caixa em cada run
-{
+void Gain() {
+  Serial.println("Calibrating the gain of the system:");
   analogWrite(LED_PIN, 819);  // 0.2 de duty cycle
   delay(2500);
-  float y1 = adc_to_volt(analogRead(A0));
+  float y1 = adc_to_lux(digital_filter(50.0));
   analogWrite(LED_PIN, 4095);
   delay(2500);
-  float y2 = adc_to_volt(analogRead(A0));
+  float y2 = adc_to_lux(digital_filter(50.0));
   analogWrite(LED_PIN, 0);
   delay(2500);
-  my_desk.setGain((volt_to_lux(y2) - volt_to_lux(y1))/(1-0.2));
-  my_pid.set_b((1/(my_pid.get_k()*((y2 - y1) / (4095 - 819)))));
-  return (y2 - y1) / (4095 - 819);
+  float Gain = (y2 - y1) / (1 - 0.2);
+  my_desk.setGain(Gain);
+  my_pid.set_b(lux_to_volt(ref) / ref, Gain);
+  Serial.printf("The static gain of the system is %f [LUX/DC]\n", Gain);
 }
-
 
 bool my_repeating_timer_callback(struct repeating_timer *t) {
   if (!timer_fired) {
     timer_fired = true;
   }
   return true;
+}
+
+float digital_filter(float value) {
+  float total_adc;
+  int j;
+  for (j = 0, total_adc = 0; j < value; j += 1) {
+    total_adc += analogRead(A0);
+  }
+  return total_adc / value;
 }

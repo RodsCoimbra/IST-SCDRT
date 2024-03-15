@@ -17,7 +17,7 @@ data_available = true;
 
 void setup() {
 flash_get_unique_id(this_pico_flash_id);
-node_address = this_pico_flash_id[4];
+node_address = this_pico_flash_id[3];
 Serial.begin();
 can0.reset();
 can0.setBitrate(CAN_1000KBPS);

@@ -3,7 +3,6 @@
 #define buffer_size 6000
 #include <cmath>
 
-
 class lumminaire
 {
   float m, offset_R_Lux, Pmax, DutyCycle, G;
@@ -12,12 +11,12 @@ class lumminaire
   unsigned short desk_number, idx_buffer;
   double Energy_avg, visibility_err, flicker_err;
   unsigned long counter_avg;
+
 public:
   explicit lumminaire(float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number);
   ~lumminaire(){};
   void store_buffer(float lux);
   void Compute_avg(float h, float lux, float reference);
-
 
   // Setters
 
@@ -50,14 +49,13 @@ public:
     G = value;
   }
 
-  void addAvgs(float energy,float visibility,float flicker) 
+  void addAvgs(float energy, float visibility, float flicker)
   {
     Energy_avg += energy;
     visibility_err += visibility;
     flicker_err += flicker;
-    counter_avg++; 
+    counter_avg++;
   }
- 
 
   // Getters
 
@@ -132,17 +130,17 @@ public:
 
   float getEnergyAvg() const
   {
-    return Energy_avg/counter_avg;
+    return Energy_avg / counter_avg;
   }
 
   float getVisibilityErr() const
   {
-    return visibility_err/counter_avg;
+    return visibility_err / counter_avg;
   }
 
   float getFlickerErr() const
   {
-    return flicker_err/counter_avg;
+    return flicker_err / counter_avg;
   }
 };
 

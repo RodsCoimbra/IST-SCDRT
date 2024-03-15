@@ -30,6 +30,7 @@ void read_command()
       ref_volt = lux_to_volt(ref);
       Serial.println("ack");
       my_desk.setIgnoreReference(false);
+      my_pid.set_b(lux_to_volt(ref)/ref, my_desk.getGain());
     }
     break;
     case 'd':
@@ -199,6 +200,7 @@ void read_command()
         break;
       }
       my_pid.set_k(K);
+      my_pid.set_b(lux_to_volt(ref)/ref, my_desk.getGain());
       Serial.println("ack");
     }
     break;
@@ -367,10 +369,12 @@ void read_command()
         Serial.printf("f %d %f\n", lumminaire, my_desk.getFlickerErr());
         break;
       case 'i':
-        Serial.printf("i %d - h = %f, K = %f, b = %f, Ti = %f, Tt = %f, Td = %f, N = %f\n", lumminaire, 
-        my_pid.get_h(), my_pid.get_k(), my_pid.get_b(), my_pid.get_Ti(), my_pid.get_Tt(), my_pid.get_Td(), my_pid.get_N());
+        Serial.printf("i %d - h = %f, K = %f, b = %f, Ti = %f, Tt = %f, Td = %f, N = %f\n", lumminaire,
+                      my_pid.get_h(), my_pid.get_k(), my_pid.get_b(), my_pid.get_Ti(), my_pid.get_Tt(), my_pid.get_Td(), my_pid.get_N());
         break;
-        
+      case 'g':
+        Serial.printf("g %d %f\n", lumminaire, my_desk.getGain());
+        break;
       default:
         Serial.println("err");
       }
@@ -404,6 +408,6 @@ void real_time_stream_of_data(unsigned long time, float lux)
   }
   if (debbuging)
   {
-    Serial.printf("0 40 %f %f %f\n", lux, ref, my_desk.getDutyCycle());
+    Serial.printf("0 40 %f %f %f %f\n", lux, ref, my_desk.getDutyCycle(), lux_to_volt(ref)/ref);
   }
 }

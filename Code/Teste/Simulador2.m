@@ -1,9 +1,9 @@
 clear
 
 h = 0.01;
-K = 0.25;
+K = 5;
 % G = 0.000166; %72.312302
-G = 72.312302; 
+G = 0.009501; 
 % G = 0.695055; %Teste
 H = 0.014; %Serial.printf("H -> %f\n", lux_to_volt(lux)/lux);
 b = 1/(K*G*H);

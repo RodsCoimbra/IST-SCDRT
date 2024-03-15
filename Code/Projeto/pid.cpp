@@ -19,7 +19,7 @@ int pid::compute_control(float r, float y)
   float bd = Td * K * N / (Td + N * h);
   D = ad * D - bd * (y - y_old);
   u_fb = P + I + D;
-  v = u_ff + u_fb;
+  v = (u_ff + u_fb)*4095;
   u = v;
   if (anti_windup)
   {
@@ -37,7 +37,7 @@ int pid::compute_control(float r, float y)
 
 int pid::get_u()
 {
-  v = u_ff + u_fb;
+  v = (u_ff + u_fb)*4095;
   u = v;
   if (anti_windup)
   {
@@ -84,11 +84,15 @@ bool pid::get_feedback()
   return feedback;
 }
 
-void pid::set_b(float b_)
+void pid::set_b(float H, float Gain)
 {
-  b = b_;
+  b = 1/(K * H * Gain);
 }
 
+void pid::set_b(float _b)
+{
+  b = _b;
+}
 void pid::set_k(float k_)
 {
   K = k_;

@@ -15,7 +15,8 @@ public:
   void housekeep(float r, float y);
   void set_antiwindup(bool set);
   void set_feedback(bool set);
-  void set_b(float b_);
+  void set_b(float H, float Gain);
+  void set_b(float b);
   void set_k(float k_);
   int get_u();
   float get_k();
