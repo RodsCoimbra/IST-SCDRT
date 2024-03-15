@@ -172,6 +172,12 @@ void read_command()
     break;
     case 'D':
     {
+      lumminaire = Serial.parseInt();
+      if (lumminaire != my_desk.getDeskNumber())
+      {
+        clean_buffer();
+        break;
+      }
       debbuging == true ? debbuging = false : debbuging = true;
       break;
     }
@@ -193,6 +199,7 @@ void read_command()
         break;
       }
       my_pid.set_k(K);
+      Serial.println("ack");
     }
     break;
     case 'b':
@@ -212,6 +219,7 @@ void read_command()
         break;
       }
       my_pid.set_b(b);
+      Serial.println("ack");
     }
     break;
     case 'g':
@@ -396,6 +404,6 @@ void real_time_stream_of_data(unsigned long time, float lux)
   }
   if (debbuging)
   {
-    Serial.printf("0 80 %f %f %f\n", lux, ref, my_desk.getDutyCycle());
+    Serial.printf("0 40 %f %f %f\n", lux, ref, my_desk.getDutyCycle());
   }
 }

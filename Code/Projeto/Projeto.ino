@@ -7,7 +7,7 @@ const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-pid my_pid{ 0.01, 2000, 3.3, 0.35, 0.5 };
+pid my_pid{ 0.01, 2000, 5.25, 0.35, 0.5 };
 // pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
 //  pid my_pid {5, 8, 3, 0, 0.3, 5};
 
@@ -39,6 +39,7 @@ void loop() {  // the loop function runs cyclically
   int j, u;
   float v_adc, total_adc;
   unsigned long time;
+  float comp;
   // Média de 20 medições, para reduzir noise
   if (timer_fired) {
     time = micros();
@@ -54,6 +55,10 @@ void loop() {  // the loop function runs cyclically
       my_pid.compute_feedforward(ref_volt);
       if (my_pid.get_feedback()) {
         v_adc = adc_to_volt(read_adc);                // Volt na entrada
+        comp = volt_to_lux(v_adc) - ref;
+        // if(comp < 0.2 && comp > 0){
+        //   v_adc = ref_volt;
+        // }
         u = my_pid.compute_control(ref_volt, v_adc);  // Volt
         my_pid.housekeep(ref_volt, v_adc);
       } else {
@@ -106,6 +111,7 @@ float Gain_Volt_DC()  // Calcula o ganho da caixa em cada run
   analogWrite(LED_PIN, 0);
   delay(2500);
   my_desk.setGain((volt_to_lux(y2) - volt_to_lux(y1))/(1-0.2));
+  my_pid.set_b((1/(my_pid.get_k()*((y2 - y1) / (4095 - 819)))));
   return (y2 - y1) / (4095 - 819);
 }
 

@@ -12,6 +12,8 @@ R2 = 10.^(m*log10(x) + b);
 Req = (R2*R1)./(R2+R1);
 Tau = Req * C;
 plot(Tau)
+ylabel('{\tau} [s]')
+xlabel('LUX')
 
 %% Simular resposta
 lumen = 100;
