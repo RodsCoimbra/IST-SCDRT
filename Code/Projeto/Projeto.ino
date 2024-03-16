@@ -7,15 +7,16 @@ const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-pid my_pid{ 0.01, 0.15, 1, 0.1, 0.03 };
+pid my_pid{ 0.01, 0.25, 1, 0.167, 0.01};
 // pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
 
 lumminaire my_desk{ -0.89, log10(225000) - (-0.89), 0.0158, 1 };
 // system my_desk{float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number}
 
-float ref{ 0.0 };
+float ref{0.3};
 float ref_volt;
 float read_adc;
+float time_init;
 bool debbuging = false;
 struct repeating_timer timer;
 volatile bool timer_fired{ false };
@@ -29,40 +30,55 @@ void setup() {  // the setup function runs once
   // Gain measurement at the beginning of the program
   Gain();
   add_repeating_timer_ms(-10, my_repeating_timer_callback, NULL, &timer);
+  time_init = millis();
 }
 
 void loop() {  // the loop function runs cyclically
   float u;
   int pwm;
   float v_adc, total_adc;
-  unsigned long time;
+  float time;
   // Média de 20 medições, para reduzir noise
   if (timer_fired) {
-    time = micros();
-    timer_fired = false;
-    read_adc = digital_filter(20.0);
-    if (my_desk.isON()) {
-      if (!my_desk.isIgnoreReference()) {
-        // Feedforward
-        my_pid.compute_feedforward(ref_volt);
-        // Feedback
-        if (my_pid.get_feedback()) {
-          v_adc = adc_to_volt(read_adc);                // Volt na entrada
-          u = my_pid.compute_control(ref_volt, v_adc);  // Volt
-          my_pid.housekeep(ref_volt, v_adc);
-        } else {
-          u = my_pid.get_u();
-        }
-        pwm = u * 4095;
-        analogWrite(LED_PIN, pwm);
-        my_desk.setDutyCycle(pwm / dutyCycle_conv);
+    time = millis();
+    if (time - time_init < 36000) {
+      if (time - time_init > 31000) {
+        ref_change(0);
+      } else if (time - time_init > 22000) {
+        ref_change(25);
+      } else if (time - time_init > 18000) {
+        ref_change(5);
+      } else if (time - time_init > 11000) {
+        ref_change(25);
+      } else if (time - time_init > 5000) {
+        ref_change(10);
       }
+      timer_fired = false;
+      read_adc = digital_filter(20.0);
+      if (my_desk.isON()) {
+        if (!my_desk.isIgnoreReference()) {
+          // Feedforward
+          my_pid.compute_feedforward(ref_volt);
+          // Feedback
+          if (my_pid.get_feedback()) {
+            v_adc = adc_to_volt(read_adc);                // Volt na entrada
+            u = my_pid.compute_control(ref_volt, v_adc);  // Volt
+            my_pid.housekeep(ref_volt, v_adc);
+          } else {
+            u = my_pid.get_u();
+          }
+          pwm = u * 4095;
+          analogWrite(LED_PIN, pwm);
+          my_desk.setDutyCycle(pwm / dutyCycle_conv);
+        }
+      }
+      float lux = adc_to_lux(read_adc);
+      my_desk.Compute_avg(my_pid.get_h(), lux, ref);
+      my_desk.store_buffer(lux);
+      // read_command();
+      real_time_stream_of_data(time / 1000, lux);
     }
-    float lux = adc_to_lux(read_adc);
-    my_desk.Compute_avg(my_pid.get_h(), lux, ref);
-    my_desk.store_buffer(lux);
     read_command();
-    real_time_stream_of_data(time / 1000, lux);
   }
 }
 
@@ -121,4 +137,24 @@ float digital_filter(float value) {
     total_adc += analogRead(A0);
   }
   return total_adc / value;
+}
+
+
+void ref_change(float value) {
+  ref = value;
+  ref_volt = lux_to_volt(ref);
+  my_desk.setIgnoreReference(false);
+  my_pid.set_b(lux_to_volt(ref) / ref, my_desk.getGain());
+  my_desk.setON(true);
+  my_pid.set_Ti(Tau(value));
+}
+
+float Tau(float value){
+if(value >= 0.5){
+float R1 = 10e3;
+float R2 = pow(10, (my_desk.getM() * log10(value) + my_desk.getOffset_R_Lux()));
+float Req = (R2*R1)/(R2+R1);
+return Req * 10e-6;
+}
+else{return 0.1;}
 }

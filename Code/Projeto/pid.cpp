@@ -92,6 +92,10 @@ void pid::set_k(float k_)
   K = k_;
 }
 
+void pid::set_Ti(float Ti_){
+  Ti = Ti_;
+}
+
 float pid::get_k()
 {
   return K;

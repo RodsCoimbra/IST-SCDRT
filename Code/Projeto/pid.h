@@ -17,6 +17,7 @@ public:
   void set_b(float H, float Gain);
   void set_b(float b);
   void set_k(float k_);
+  void set_Ti(float Ti_);
   float get_u();
   float get_k();
   float get_h();
