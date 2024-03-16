@@ -7,9 +7,8 @@ const int DAC_RANGE = 4096;
 const float VCC = 3.3;
 const float adc_conv = 4095.0 / VCC;
 const float dutyCycle_conv = 4095.0 / 100.0;
-pid my_pid{ 0.01, 0.5, 1, 0.1, 0.05};
+pid my_pid{ 0.01, 0.15, 1, 0.1, 0.03 };
 // pid my_pid(float _h, float _K, float b_,float Ti_, float Tt_, float Td_, float N_)
-//  pid my_pid {5, 8, 3, 0, 0.3, 5};
 
 lumminaire my_desk{ -0.89, log10(225000) - (-0.89), 0.0158, 1 };
 // system my_desk{float _m, float _offset_R_Lux, float _Pmax, unsigned short _desk_number}
@@ -33,7 +32,8 @@ void setup() {  // the setup function runs once
 }
 
 void loop() {  // the loop function runs cyclically
-  int u;
+  float u;
+  int pwm;
   float v_adc, total_adc;
   unsigned long time;
   // Média de 20 medições, para reduzir noise
@@ -41,18 +41,22 @@ void loop() {  // the loop function runs cyclically
     time = micros();
     timer_fired = false;
     read_adc = digital_filter(20.0);
-    if (!my_desk.isIgnoreReference()) {
-      // Feedforward
-      my_pid.compute_feedforward(ref_volt);
-      if (my_pid.get_feedback()) {
-        v_adc = adc_to_volt(read_adc);  // Volt na entrada
-        u = my_pid.compute_control(ref_volt, v_adc);  // Volt
-        my_pid.housekeep(ref_volt, v_adc);
-      } else {
-        u = my_pid.get_u();
+    if (my_desk.isON()) {
+      if (!my_desk.isIgnoreReference()) {
+        // Feedforward
+        my_pid.compute_feedforward(ref_volt);
+        // Feedback
+        if (my_pid.get_feedback()) {
+          v_adc = adc_to_volt(read_adc);                // Volt na entrada
+          u = my_pid.compute_control(ref_volt, v_adc);  // Volt
+          my_pid.housekeep(ref_volt, v_adc);
+        } else {
+          u = my_pid.get_u();
+        }
+        pwm = u * 4095;
+        analogWrite(LED_PIN, pwm);
+        my_desk.setDutyCycle(pwm / dutyCycle_conv);
       }
-      analogWrite(LED_PIN, u);
-      my_desk.setDutyCycle(u / dutyCycle_conv);
     }
     float lux = adc_to_lux(read_adc);
     my_desk.Compute_avg(my_pid.get_h(), lux, ref);
@@ -89,7 +93,7 @@ float volt_to_lux(float volt) {
 
 void Gain() {
   Serial.println("Calibrating the gain of the system:");
-  analogWrite(LED_PIN, 819);  // 0.2 de duty cycle
+  analogWrite(LED_PIN, 0);
   delay(2500);
   float y1 = adc_to_lux(digital_filter(50.0));
   analogWrite(LED_PIN, 4095);
@@ -97,7 +101,7 @@ void Gain() {
   float y2 = adc_to_lux(digital_filter(50.0));
   analogWrite(LED_PIN, 0);
   delay(2500);
-  float Gain = (y2 - y1) / (1 - 0.2);
+  float Gain = (y2 - y1);
   my_desk.setGain(Gain);
   my_pid.set_b(lux_to_volt(ref) / ref, Gain);
   Serial.printf("The static gain of the system is %f [LUX/DC]\n", Gain);

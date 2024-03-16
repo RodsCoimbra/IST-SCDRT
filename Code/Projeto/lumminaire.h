@@ -5,9 +5,9 @@
 
 class lumminaire
 {
-  float m, offset_R_Lux, Pmax, DutyCycle, G;
+  float m, offset_R_Lux, Pmax, DutyCycle, G, ref_unoccupied, ref_occupied;
   float last_minute_buffer_d[buffer_size], last_minute_buffer_l[buffer_size];
-  bool occupied, lux_flag, duty_flag, ignore_reference, buffer_full;
+  bool occupied, lux_flag, duty_flag, ignore_reference, buffer_full, on;
   unsigned short desk_number, idx_buffer;
   double Energy_avg, visibility_err, flicker_err;
   unsigned long counter_avg;
@@ -23,6 +23,11 @@ public:
   void setOccupied(bool value)
   {
     occupied = value;
+  }
+
+  void setON(bool value)
+  {
+    on = value;
   }
 
   void setDutyFlag(bool value)
@@ -64,6 +69,11 @@ public:
     return occupied;
   }
 
+  bool isON() const
+  {
+    return on;
+  }
+
   bool isDutyFlag() const
   {
     return duty_flag;
@@ -93,6 +103,18 @@ public:
   {
     return m;
   }
+
+  float getRefOccupied() const
+  {
+    return ref_occupied;
+  }
+
+  float getRefUnoccupied() const
+  {
+    return ref_unoccupied;
+  }
+
+
   unsigned short getIdxBuffer() const
   {
     return idx_buffer;

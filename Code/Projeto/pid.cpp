@@ -9,7 +9,7 @@ pid::pid(float _h, float _K, float b_,
 {
 }
 
-int pid::compute_control(float r, float y)
+float pid::compute_control(float r, float y)
 {
   I = I + K_old * (b_old * r - y) - K * (b * r - y); // Bumpless
   b_old = b;
@@ -19,36 +19,30 @@ int pid::compute_control(float r, float y)
   float bd = Td * K * N / (Td + N * h);
   D = ad * D - bd * (y - y_old);
   u_fb = P + I + D;
-  v = (u_ff + u_fb)*4095;
+  v = (u_ff + u_fb);
   u = v;
-  if (anti_windup)
+  if (u > 1)
   {
-    if (u > 4095)
-    {
-      u = 4095.0;
-    }
-    else if (u < 0)
-    {
-      u = 0.0;
-    }
+    u = 1.0;
+  }
+  else if (u < 0)
+  {
+    u = 0.0;
   }
   return u;
 }
 
-int pid::get_u()
+float pid::get_u()
 {
-  v = (u_ff + u_fb)*4095;
+  v = (u_ff + u_fb);
   u = v;
-  if (anti_windup)
+  if (u > 1)
   {
-    if (u > 4095)
-    {
-      u = 4095.0;
-    }
-    else if (u < 0)
-    {
-      u = 0.0;
-    }
+    u  = 1.0;
+  }
+  else if (u < 0.0)
+  {
+     u = 0.0;
   }
   return u;
 }
