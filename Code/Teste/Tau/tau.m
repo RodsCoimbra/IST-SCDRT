@@ -1,4 +1,4 @@
-clear
+ clear
 close all
 
 
@@ -11,7 +11,7 @@ b =  log10(225000)-m;
 R2 = 10.^(m*log10(x) + b);
 Req = (R2*R1)./(R2+R1);
 Tau = Req * C;
-plot(Tau)
+plot(x,Tau)
 ylabel('{\tau} [s]')
 xlabel('LUX')
 

@@ -21,7 +21,7 @@ void loop() {  // the loop function runs cyclically
   int i, j;
   float total_adc;
   float avg_lux;
-  delay(5000);
+  delay(8000);
   offset_R_Lux = log10(225000) - m;
   for (i = 0; i <= 4200; i += 300) {
     if (i > 4095) {
@@ -30,11 +30,9 @@ void loop() {  // the loop function runs cyclically
     avg_lux = 0;
     total_adc = 0;
     analogWrite(LED_PIN, i);
-    delay(1200);
+    delay(3300);
     for (j = 0; j < 100; j += 1) {
-      read_adc = analogRead(A0);  // read analog voltage
-      total_adc += read_adc;
-      delayMicroseconds(20);
+      total_adc += analogRead(A0);  // read analog voltage
     }
     avg_lux = calculate_Lux(total_adc/ 100.0);
     Serial.printf("%f, %f\n", calculate_Duty(i), avg_lux);

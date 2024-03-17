@@ -164,10 +164,10 @@ void read_command() {
             clean_buffer();
             break;
           }
+          Serial.read();
           debbuging == true ? debbuging = false : debbuging = true;
-          break;
         }
-
+        break;
       case 'K':
         {
           float K;
@@ -202,6 +202,63 @@ void read_command() {
             break;
           }
           my_pid.set_b(b);
+          Serial.println("ack");
+        }
+        break;
+
+      case 'l':
+        {
+          int temp_bump;
+          lumminaire = Serial.parseInt();
+          if (lumminaire != my_desk.getDeskNumber()) {
+            clean_buffer();
+            break;
+          }
+          Serial.read();
+          temp_bump = Serial.parseInt();
+          if (Serial.read() != '\n' || (temp_bump != 1 && temp_bump != 0)) {
+            Serial.println("err");
+            break;
+          }
+          my_pid.set_bumpless(temp_bump);
+          Serial.println("ack");
+        }
+        break;
+      //apenas para teste
+      case 't':
+        {
+          float t;
+          lumminaire = Serial.parseInt();
+          if (lumminaire != my_desk.getDeskNumber()) {
+            clean_buffer();
+            break;
+          }
+          Serial.read();
+          t = Serial.parseFloat();
+          if (Serial.read() != '\n') {
+            Serial.println("err");
+            break;
+          }
+          my_pid.set_Tt(t);
+          Serial.println("ack");
+        }
+        break;
+      //apenas para teste
+      case 'i':
+        {
+          float i;
+          lumminaire = Serial.parseInt();
+          if (lumminaire != my_desk.getDeskNumber()) {
+            clean_buffer();
+            break;
+          }
+          Serial.read();
+          i = Serial.parseFloat();
+          if (Serial.read() != '\n') {
+            Serial.println("err");
+            break;
+          }
+          my_pid.set_Ti(i);
           Serial.println("ack");
         }
         break;
@@ -285,16 +342,16 @@ void read_command() {
                   // Se o buffer estiver cheio começar a partir dos valores mais antigos para os mais recentes
                   if (my_desk.isBufferFull()) {
                     for (i = head; i < buffer_size; i++) {
-                      Serial.printf("%f\n ", my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%f\n ", my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                   }
                   // Se o buffer não estiver cheio ir até onde há dados
                   else {
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%f\n ", my_desk.getLastMinuteBufferL(i));
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferL(i));
                     }
                   }
                   Serial.printf("%f\n", my_desk.getLastMinuteBufferL(head - 1));
@@ -304,16 +361,16 @@ void read_command() {
                   // Se o buffer estiver cheio começar a partir dos valores mais antigos para os mais recentes
                   if (my_desk.isBufferFull()) {
                     for (i = head; i < buffer_size; i++) {
-                      Serial.printf("%f\n ", my_desk.getLastMinuteBufferD(i));  //tirar o \n e meter ,
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));  //tirar o \n e meter ,
                     }
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%f\n ", my_desk.getLastMinuteBufferD(i));  //tirar o \n
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));  //tirar o \n
                     }
                   }
                   // Se o buffer não estiver cheio ir até onde há dados
                   else {
                     for (i = 0; i < head - 1; i++) {
-                      Serial.printf("%f\n, ", my_desk.getLastMinuteBufferD(i));  //tirar o \n
+                      Serial.printf("%f, ", my_desk.getLastMinuteBufferD(i));  //tirar o \n
                     }
                   }
                   Serial.printf("%f\n", my_desk.getLastMinuteBufferD(head - 1));
@@ -339,7 +396,7 @@ void read_command() {
           case 'g':
             Serial.printf("g %d %f\n", lumminaire, my_desk.getGain());
             break;
-
+          //apenas para gráficos
           case 'y':
             {
               unsigned short head = my_desk.getIdxBuffer();
@@ -363,6 +420,7 @@ void read_command() {
               Serial.printf("%f\n", my_desk.getLastMinuteBufferL(head - 1));
             }
             break;
+            //apenas para gráficos
           case 'z':
             {
               unsigned short head = my_desk.getIdxBuffer();
@@ -415,6 +473,6 @@ void real_time_stream_of_data(unsigned long time, float lux) {
     Serial.printf("s d %d %f %ld \n", my_desk.getDeskNumber(), my_desk.getDutyCycle(), time);
   }
   if (debbuging) {
-    Serial.printf("0 40 %f %f %f %f %f %f %f\n", lux, ref, my_desk.getDutyCycle(), lux_to_volt(ref) / ref, my_pid.get_I(), my_pid.get_P());
+    Serial.printf("0 40 %f %f %f\n", lux, ref, my_desk.getDutyCycle());
   }
 }
