@@ -19,7 +19,13 @@ void lumminaire::Compute_avg(float h, float lux, float reference) {
 
   // visibility
   float visibility;
-  visibility = 0 > reference ? 0 : reference - lux;
+  float diff = reference-lux;
+  if(diff > 0){
+    visibility = diff;
+  }
+  else {
+  visibility = 0;
+  }
 
   // flicker
   float d_k_1, d_k_2, d_k, flicker;

@@ -16,7 +16,6 @@ lumminaire my_desk{ -0.89, log10(225000) - (-0.89), 0.0158, 1 }; //m, b(offset),
 float ref{ 10.0 };
 float ref_volt;
 float read_adc;
-float time_init;
 bool debbuging = false;
 struct repeating_timer timer;
 volatile bool timer_fired{ false };
@@ -30,7 +29,6 @@ void setup() {  // the setup function runs once
   // Gain measurement at the beginning of the program
   Gain();
   add_repeating_timer_ms(-10, my_repeating_timer_callback, NULL, &timer);
-  time_init = millis();
 }
 
 void loop() {  // the loop function runs cyclically
