@@ -42,7 +42,7 @@ bool my_repeating_timer_callback(struct repeating_timer *t)
 }
 
 // CONNECTION
-unsigned long connect_time, demora_b, demora_e;
+unsigned long connect_time;
 std::set<int> desks_connected; // TODO
 bool is_connected{false};
 int time_to_connect{500};
@@ -83,7 +83,6 @@ void loop()
 {
     static int timer_new_node = 0;
     unsigned long time_now = millis();
-    int time_last_sent;
     if (!is_connected)
     {
         if (time_now - connect_time > time_to_connect)
@@ -104,7 +103,7 @@ void loop()
             }
         }
     }
-    if ((data_available || !command_queue.empty()) && timer_fired)
+    if ((data_available || !command_queue.empty()))
     {
         data_available = false;
         while (can0.checkReceive()) // Check if something has been received
@@ -135,36 +134,7 @@ void loop()
                 {
                 case 'W':
                 {
-                    switch (canMsgRx.data[1])
-                    {
-                    case 'N':
-                    {
-                        if (is_connected)
-                        {
-                            connection_msg('R');
-                        }
-                    }
-                    break;
-                    case 'R':
-                    {
-                        if (!is_connected)
-                        {
-                            desks_connected.insert(canMsgRx.can_id);
-                        }
-                    }
-                    break;
-                    case 'A':
-                    {
-                        if (is_connected)
-                        {
-                            desks_connected.insert(canMsgRx.can_id);
-                        }
-                    }
-                    break;
-                    default:
-                        Serial.printf("ERROR DURING WAKE UP. Message W %c received.\n", canMsgRx.data[1]);
-                        break;
-                    }
+                    msg_received_connection(canMsgRx);
                 }
                 break;
                 default:
@@ -173,7 +143,8 @@ void loop()
             }
         }
     }
-    if (Serial.available() > 0)
+
+    if (Serial.available() > 0) // TO DELETE
     {
         char c = Serial.read();
         if (is_connected)
@@ -192,6 +163,8 @@ void loop()
         }
     }
 }
+
+/************CONNECTION FUNCTIONS********************/
 
 // Message -> "W A/N/R {desk_number}" (Wake Ack/New/Received)
 void connection_msg(char type)
@@ -212,6 +185,17 @@ void connection_msg(char type)
     }
 }
 
+int find_desk()
+{
+    int i = 1;
+    while (desks_connected.find(i) != desks_connected.end())
+    {
+        i++;
+    }
+    return i;
+}
+
+/************CALIBRATION FUNCTIONS********************/
 // Message -> "C A/B/E/F/R/S {desk_number}" (Calibration Ack/Beginning/External/Finished/Read/Start)
 void calibration_msg(int desk, char type)
 {
@@ -232,6 +216,79 @@ void calibration_msg(int desk, char type)
     }
     wait_ack = true;
     last_msg_sent = canMsgTx;
+}
+
+// void new_calibration()
+// {
+//     desk_array = (int *)malloc(num_desks * sizeof(int)); // array of desks
+//     if (num_desks == 1)
+//     {
+//         Gain();
+//         is_calibrated = true;
+//     }
+//     else
+//     {
+//         Serial.printf("B msg\n");
+//         calibration_msg(desk, 'B');
+//         counter_ack_calibration = 0; // TODO change this
+//         analogWrite(LED_PIN, 0);
+//     }
+// }
+
+void cross_gains()
+{
+    analogWrite(LED_PIN, 4095);
+    delay_manual(2500);
+    calibration_msg(desk, 'R');
+    // COMMENT light_on =adc_to_lux(digital_filter(50.0));
+    // COMMENT desk_array[desk] = light_on - light_off;
+}
+
+void Gain()
+{
+    Serial.println("Calibrating the gain of the system:");
+    analogWrite(LED_PIN, 0);
+    delay_manual(1000); // COMMENT MUDAR OS TRÊS PARA 2500
+    // COMMENT light_off = adc_to_lux(digital_filter(50.0));
+    analogWrite(LED_PIN, 4095);
+    delay_manual(1000);
+    // COMMENT light_on = adc_to_lux(digital_filter(50.0));
+    analogWrite(LED_PIN, 0);
+    delay_manual(1000);
+    // float Gain = (light_on - light_off);
+    Serial.printf("Calibration Finished\n");
+}
+/************UTILS********************/
+
+void delay_manual(unsigned long delay)
+{
+    unsigned long delay_start = millis();
+    unsigned long delay_end = millis();
+    while (delay_end - delay_start < delay)
+    {
+        delay_end = millis();
+    }
+}
+
+float digital_filter(float value)
+{
+    float total_adc;
+    int j;
+    for (j = 0, total_adc = 0; j < value; j += 1)
+    {
+        total_adc += analogRead(A0);
+    }
+    return total_adc / value;
+}
+
+int char_msg_to_int(char msg)
+{
+    return msg - '0';
+}
+
+char int_to_char_msg(int msg)
+{
+    return msg + '0';
 }
 
 void ack_msg(can_frame orig_msg)
@@ -265,87 +322,6 @@ bool confirm_msg(can_frame ack_msg)
     return true;
 }
 
-// void new_calibration()
-// {
-//     desk_array = (int *)malloc(num_desks * sizeof(int)); // array of desks
-//     if (num_desks == 1)
-//     {
-//         Gain();
-//         is_calibrated = true;
-//     }
-//     else
-//     {
-//         Serial.printf("B msg\n");
-//         calibration_msg(desk, 'B');
-//         counter_ack_calibration = 0; // TODO change this
-//         analogWrite(LED_PIN, 0);
-//     }
-// }
-
-int find_desk()
-{
-    int i = 1;
-    while (desks_connected.find(i) != desks_connected.end())
-    {
-        i++;
-    }
-    return i;
-}
-void cross_gains()
-{
-    analogWrite(LED_PIN, 4095);
-    delay_manual(2500);
-    calibration_msg(desk, 'R');
-    // COMMENT light_on =adc_to_lux(digital_filter(50.0));
-    // COMMENT desk_array[desk] = light_on - light_off;
-}
-
-void Gain()
-{
-    Serial.println("Calibrating the gain of the system:");
-    analogWrite(LED_PIN, 0);
-    delay_manual(1000); // COMMENT MUDAR OS TRÊS PARA 2500
-    // COMMENT light_off = adc_to_lux(digital_filter(50.0));
-    analogWrite(LED_PIN, 4095);
-    delay_manual(1000);
-    // COMMENT light_on = adc_to_lux(digital_filter(50.0));
-    analogWrite(LED_PIN, 0);
-    delay_manual(1000);
-    // float Gain = (light_on - light_off);
-    Serial.printf("Calibration Finished\n");
-}
-
-void delay_manual(unsigned long delay)
-{
-    unsigned long delay_start = millis();
-    unsigned long delay_end = millis();
-    while (delay_end - delay_start < delay)
-    {
-        delay_end = millis();
-    }
-}
-
-float digital_filter(float value)
-{
-    float total_adc;
-    int j;
-    for (j = 0, total_adc = 0; j < value; j += 1)
-    {
-        total_adc += analogRead(A0);
-    }
-    return total_adc / value;
-}
-
-int char_msg_to_int(char msg)
-{
-    return msg - '0';
-}
-
-char int_to_char_msg(int msg)
-{
-    return msg + '0';
-}
-
 void resend_last_msg()
 {
     last_msg_counter++;
@@ -360,6 +336,40 @@ void resend_last_msg()
     if (err != MCP2515::ERROR_OK)
     {
         Serial.printf("Error sending message: %s\n", err);
+    }
+}
+
+void msg_received_connection(can_frame canMsgRx)
+{
+    switch (canMsgRx.data[1])
+    {
+    case 'N':
+    {
+        if (is_connected)
+        {
+            connection_msg('R');
+        }
+    }
+    break;
+    case 'R':
+    {
+        if (!is_connected)
+        {
+            desks_connected.insert(canMsgRx.can_id);
+        }
+    }
+    break;
+    case 'A':
+    {
+        if (is_connected)
+        {
+            desks_connected.insert(canMsgRx.can_id);
+        }
+    }
+    break;
+    default:
+        Serial.printf("ERROR DURING WAKE UP. Message W %c received.\n", canMsgRx.data[1]);
+        break;
     }
 }
 
