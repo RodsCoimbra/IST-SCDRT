@@ -2,7 +2,7 @@
 #include "mcp2515.h"
 #include <queue> // std::queue
 #include <set>   // std::set
-
+#define TIME_ACK 1000
 // Lumminaire
 const int LED_PIN = 15;
 const int DAC_RANGE = 4096;
@@ -18,6 +18,7 @@ const int DAC_RANGE = 4096;
 // float ref_volt;
 // float read_adc;
 // bool debbuging = false;
+
 int desk = 1, num_desks = 1;
 uint8_t this_pico_flash_id[8], node_address;
 
@@ -42,7 +43,7 @@ bool my_repeating_timer_callback(struct repeating_timer *t)
 }
 
 // CONNECTION
-unsigned long connect_time, demora_b, demora_e;
+unsigned long connect_time;
 std::set<int> desks_connected; // TODO
 bool is_connected{false};
 int time_to_connect{500};
@@ -50,12 +51,16 @@ int time_to_connect{500};
 // MESSAGES
 MCP2515::ERROR err;
 MCP2515 can0{spi0, 17, 19, 16, 18, 10000000};
-bool wait_ack = false;
+std::set<int> missing_ack;
 std::queue<can_frame> command_queue;
 can_frame last_msg_sent;
-unsigned short last_msg_counter;
+int time_ack = 0;
+// unsigned short last_msg_counter;
 
 // CALIBRATION
+bool is_calibrated{false};
+int *desk_array = NULL;
+float light_off, light_on;
 
 // Start
 void setup()
@@ -83,17 +88,16 @@ void loop()
 {
   static int timer_new_node = 0;
   unsigned long time_now = millis();
-  int time_last_sent;
   if (!is_connected)
   {
     if (time_now - connect_time > time_to_connect)
     {
       is_connected = true;
       desk = find_desk();
-      // Serial.printf("Conectei-me com desk = %d e time_connect = %d ms\n", desk, time_to_connect);
       num_desks = desks_connected.size() + 1;
       connection_msg('A');
       // TODO Confirmar mensagens de W N antes de correr o new_calibration
+      // TODO CORRER O NEW CALIBRATION
     }
     else
     {
@@ -104,72 +108,93 @@ void loop()
       }
     }
   }
-  if ((data_available || !command_queue.empty()))
+  if (data_available)
   {
     data_available = false;
-    while (can0.checkReceive()) // Check if something has been received
+    if (!missing_ack.empty()) // If our node is waiting for an ack
     {
-      can_frame canMsgRx;
-      can0.readMessage(&canMsgRx);
-      // TODO Ainda meter este wait ack a funcionar
-      if (wait_ack) // If our node is waiting for an ack
+      while (can0.checkReceive()) // Check if something has been received
       {
+        can_frame canMsgRx;
+        can0.readMessage(&canMsgRx);
+        // TODO Ainda meter este wait ack a funcionar
+
         if (canMsgRx.data[0] != 'A')
         {
           command_queue.push(canMsgRx);
         }
         else
         {
-          // while (!command_queue.empty())
-          // {
-          //     can_frame msg;
-          //     msg = command_queue.front();
-          //     Serial.printf("Final -> %s", msg.data);
-          //   command_queue.pop();
-          // }
+          confirm_msg(canMsgRx);
+          if (time_now - time_ack > TIME_ACK && !missing_ack.empty())
+          {
+            resend_last_msg();
+          }
+          if (missing_ack.empty())
+          {
+            switch (last_msg_sent.data[0]) // Trigger of some actions after receiving the ack
+            {
+            case 'C':
+              switch (last_msg_sent.data[1])
+              {
+              case 'B':
+              {
+                delay_manual(2000);
+                calibration_msg(desk, 'E');
+                // COMMENT light_off = adc_to_lux(digital_filter(50.0));
+              }
+              break;
+              case 'E':
+              {
+                calibration_msg(1, 'S');
+              }
+              case 'R':
+              {
+                if (desk != desks_connected.size())
+                {
+                  analogWrite(LED_PIN, 0);
+                  calibration_msg(desk + 1, 'S');
+                }
+                else
+                {
+                  calibration_msg(0, 'F');
+                  analogWrite(LED_PIN, 0);
+                }
+              }
+              default:
+                break;
+              }
+            default:
+              break;
+            }
+          }
         }
       }
-      else
+    }
+    else
+    {
+      while (can0.checkReceive()) // Check if something has been received
       {
+        can_frame canMsgRx;
+        can0.readMessage(&canMsgRx);
+        command_queue.push(canMsgRx);
+      }
+      while (!command_queue.empty())
+      {
+        can_frame canMsgRx;
+        canMsgRx = command_queue.front();
         switch (canMsgRx.data[0])
         {
         case 'W':
-        {
-          switch (canMsgRx.data[1])
-          {
-          case 'N':
-          {
-            if (is_connected)
-            {
-              connection_msg('R');
-            }
-          }
+          msg_received_connection(canMsgRx);
           break;
-          case 'R':
-          {
-            if (!is_connected)
-            {
-              desks_connected.insert(canMsgRx.can_id);
-            }
-          }
+        case 'C':
+          msg_received_calibration(canMsgRx);
           break;
-          case 'A':
-          {
-            if (is_connected)
-            {
-              desks_connected.insert(canMsgRx.can_id);
-            }
-          }
-          break;
-          default:
-            Serial.printf("ERROR DURING WAKE UP. Message W %c received.\n", canMsgRx.data[1]);
-            break;
-          }
-        }
-        break;
         default:
           break;
         }
+        command_queue.pop();
       }
     }
   }
@@ -225,16 +250,50 @@ int find_desk()
   return i;
 }
 
+void msg_received_connection(can_frame canMsgRx)
+{
+  switch (canMsgRx.data[1])
+  {
+  case 'N':
+  {
+    if (is_connected)
+    {
+      connection_msg('R');
+    }
+  }
+  break;
+  case 'R':
+  {
+    if (!is_connected)
+    {
+      desks_connected.insert(canMsgRx.can_id);
+    }
+  }
+  break;
+  case 'A':
+  {
+    if (is_connected)
+    {
+      desks_connected.insert(canMsgRx.can_id);
+    }
+  }
+  break;
+  default:
+    Serial.printf("ERROR DURING WAKE UP. Message W %c received.\n", canMsgRx.data[1]);
+    break;
+  }
+}
+
 /************CALIBRATION FUNCTIONS********************/
-// Message -> "C A/B/E/F/R/S {desk_number}" (Calibration Ack/Beginning/External/Finished/Read/Start)
-void calibration_msg(int desk, char type)
+// Message -> "C B/E/F/R/S {desk_number}" (Calibration Beginning/External/Finished/Read/Start)
+void calibration_msg(int dest_desk, char type)
 {
   struct can_frame canMsgTx;
   canMsgTx.can_id = desk;
   canMsgTx.can_dlc = 8;
   canMsgTx.data[0] = 'C';
   canMsgTx.data[1] = type;
-  canMsgTx.data[2] = int_to_char_msg(desk);
+  canMsgTx.data[2] = int_to_char_msg(dest_desk); // DESK TO WHICH THE MESSAGE IS DIRECTED, in messages that require it
   for (int i = 3; i < 8; i++)
   {
     canMsgTx.data[i] = ' ';
@@ -244,7 +303,8 @@ void calibration_msg(int desk, char type)
   {
     Serial.printf("Error sending message: %s\n", err);
   }
-  wait_ack = true;
+  missing_ack = desks_connected;
+  time_ack = millis();
   last_msg_sent = canMsgTx;
 }
 
@@ -262,6 +322,58 @@ void new_calibration()
     calibration_msg(desk, 'B');
     counter_ack_calibration = 0; // TODO change this
     analogWrite(LED_PIN, 0);
+  }
+}
+
+void msg_received_calibration(can_frame canMsgRx)
+{
+  switch (canMsgRx.data[1])
+  {
+  case 'B': // Quando lerem o begin desligam as luzes
+  {
+    // TODO : LIMPAR TODOS OS OUTRAS MENSAGENS DE CALIBRATIONS
+    if (desk_array != NULL)
+    {
+      free(desk_array);
+    }
+
+    ack_msg(canMsgRx);
+    analogWrite(LED_PIN, 0);
+  }
+  break;
+  case 'E':
+  {
+    // COMMENT light_off = adc_to_lux(digital_filter(50.0));
+    ack_msg(canMsgRx);
+  }
+  break;
+  case 'F':
+  {
+    Serial.printf("Calibration Finished through message\n");
+  }
+  break;
+  case 'R':
+  {
+    // COMMENT light_on = adc_to_lux(digital_filter(50.0));
+    ack_msg(canMsgRx);
+    // COMMENT desk_array[char_msg_to_int(canMsgRx.data[2])] = light_on - light_off;
+  }
+  break;
+  case 'S':
+  {
+    if (char_msg_to_int(canMsgRx.data[2]) == desk)
+    {
+      cross_gains();
+    }
+    else
+    {
+      analogWrite(LED_PIN, 0);
+    }
+  }
+  break;
+  default:
+    Serial.printf("ERROR DURING CALIBRATION. Message C %c received.\n", canMsgRx.data[1]);
+    break;
   }
 }
 
@@ -288,6 +400,61 @@ void Gain()
   // float Gain = (light_on - light_off);
   Serial.printf("Calibration Finished\n");
 }
+
+/************General Messages********************/
+
+void ack_msg(can_frame orig_msg)
+{
+  struct can_frame canMsgTx;
+  canMsgTx.can_id = desk;
+  canMsgTx.can_dlc = 8;
+  canMsgTx.data[0] = 'A';
+  for (int i = 0; i < 6; i++)
+  {
+    canMsgTx.data[i + 1] = orig_msg.data[i];
+  }
+  err = can0.sendMessage(&canMsgTx);
+  if (err != MCP2515::ERROR_OK)
+  {
+    Serial.printf("Error sending message: %s\n", err);
+  }
+}
+
+void confirm_msg(can_frame ack_msg)
+{
+  for (int i = 0; i < 6; i++)
+  {
+    if (ack_msg.data[i + 1] != last_msg_sent.data[i])
+    {
+      return;
+    }
+  }
+  missing_ack.erase(ack_msg.can_id);
+  return;
+}
+
+void resend_last_msg()
+{
+  last_msg_counter++;
+  if (last_msg_counter == 5) // After 5 tries, remove the nodes that didn't ack
+  {
+    // TODO : CHANGE THE HUB IF THE ONE DISCONNECTED WAS THE HUB
+    last_msg_counter = 0;
+    for (const int &element : missing_ack)
+    {
+      desks_connected.erase(element);
+      Serial.printf("Node %d removed from the connected nodes do to inactivity\n", element);
+    }
+    missing_ack.clear();
+    return;
+  }
+  err = can0.sendMessage(&last_msg_sent);
+  if (err != MCP2515::ERROR_OK)
+  {
+    Serial.printf("Error sending message: %s\n", err);
+  }
+}
+
 /************UTILS********************/
 
 void delay_manual(unsigned long delay)
@@ -319,54 +486,6 @@ int char_msg_to_int(char msg)
 char int_to_char_msg(int msg)
 {
   return msg + '0';
-}
-
-void ack_msg(can_frame orig_msg)
-{
-  struct can_frame canMsgTx;
-  canMsgTx.can_id = desk;
-  canMsgTx.can_dlc = 8;
-  canMsgTx.data[0] = 'A';
-  for (int i = 0; i < 6; i++)
-  {
-    canMsgTx.data[i + 1] = orig_msg.data[i];
-  }
-  err = can0.sendMessage(&canMsgTx);
-  wait_ack = true;
-  last_msg_sent = canMsgTx;
-  if (err != MCP2515::ERROR_OK)
-  {
-    Serial.printf("Error sending message: %s\n", err);
-  }
-}
-
-bool confirm_msg(can_frame ack_msg)
-{
-  for (int i = 0; i < 6; i++)
-  {
-    if (ack_msg.data[i + 1] != last_msg_sent.data[i])
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-void resend_last_msg()
-{
-  last_msg_counter++;
-  if (last_msg_counter == 3)
-  {
-    last_msg_counter = 0;
-    num_desks--;
-    // TODO remove desk from desks_connected
-    return;
-  }
-  err = can0.sendMessage(&last_msg_sent);
-  if (err != MCP2515::ERROR_OK)
-  {
-    Serial.printf("Error sending message: %s\n", err);
-  }
 }
 
 // TODO acks/ char_msg_command é o ultimo comando enviado
